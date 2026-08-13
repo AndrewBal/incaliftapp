@@ -210,6 +210,10 @@ export default {
             var ret = [];
             var str = "";
             if (name) {
+              if (name.indexOf("checklistAnswers_") === 0) {
+                str = localStorage.getItem("COM.QUIKTRAK.PRESTART." + name);
+                return str ? JSON.parse(str) : {};
+              }
               switch (name) {
                 case "additionalFlags":
                   str = localStorage.getItem(
@@ -490,6 +494,13 @@ export default {
           },
           setInStorage: function (params) {
             if (typeof params == "object" && params.name && params.data) {
+              if (params.name.indexOf("checklistAnswers_") === 0) {
+                localStorage.setItem(
+                  "COM.QUIKTRAK.PRESTART." + params.name,
+                  JSON.stringify(params.data)
+                );
+                return;
+              }
               switch (params.name) {
                 case "additionalFlags":
                   let flags = this.methods.getFromStorage(params.name);

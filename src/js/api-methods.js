@@ -45,6 +45,7 @@ export default {
     CHANGE_JOB_STATUS: DOMAIN1_ + "Installer/V1/Job/ChangeStatus",
     EDIT_JOB: DOMAIN1_ + "Installer/V1/Job/Edit",
     GET_JOB_CHECKLIST: DOMAIN1_ + "Installer/V1/Job/GetCheckList",
+    ADD_NOTE: DOMAIN1_ + "Quiktrak/V3/Notes/Add",
     REFRESH_PUSH_TOKEN: DOMAIN1 + "QuikTrak/V1/User/RefreshToken",
     GET_NEW_NOTIFICATIONS: DOMAIN1 + "QuikTrak/V1/Device/Alarms",
     GET_ASSET_DETAILS: DOMAIN1 + "Common/v1/Activation/GetAssetsInfo",

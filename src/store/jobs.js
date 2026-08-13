@@ -55,7 +55,8 @@ export default {
 
     async CHANGE_JOB_STATUS({ commit }, { Code, Status }) {
       try {
-        const response = await Vue.axios.get(APIMETHODS.URL.CHANGE_JOB_STATUS, { params: { Code, Status } })
+        let getParams = new URLSearchParams({ Code, Status })
+        const response = await Vue.axios.post(APIMETHODS.URL.CHANGE_JOB_STATUS + '?' + getParams.toString(), null, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
         if (response.data.MajorCode === '000') {
           commit('SET_JOB_STATUS', { code: Code, status: Status })
           return response.data
@@ -76,7 +77,7 @@ export default {
       try {
         const response = await Vue.axios.get(APIMETHODS.URL.GET_JOB_CHECKLIST, { params: { AgentCode } })
         if (response.data.MajorCode === '000') {
-          const items = (response.data.Data && response.data.Data.CheckList) || []
+          const items = response.data.Data || []
           commit('SET_JOB_CHECKLIST_ITEMS', items)
           return items
         } else {
@@ -90,12 +91,34 @@ export default {
       }
     },
 
+    async ADD_NOTE({ commit, rootState }, { CustomerCode, NoteText, JobCode }) {
+      try {
+        let getParams = new URLSearchParams({
+          MajorToken: rootState.info.MajorToken,
+          MinorToken: rootState.info.MinorToken,
+          CustomerCode,
+          NoteText,
+          JobCode,
+        })
+        const response = await Vue.axios.post(APIMETHODS.URL.ADD_NOTE + '?' + getParams.toString(), null, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+        if (response.data.MajorCode === '000') {
+          return response.data
+        } else {
+          response.data.method = 'add_note'
+          commit('setApiValidationError', response.data)
+          return false
+        }
+      } catch (e) {
+        commit('setError', e)
+        throw e
+      }
+    },
+
     async EDIT_JOB({ commit }, data) {
       try {
         const { JobOptions, ...jobFields } = data
-        const response = await Vue.axios.get(APIMETHODS.URL.EDIT_JOB, {
-          params: { ...jobFields, JobOptions: JSON.stringify(JobOptions || []) },
-        })
+        let getParams = new URLSearchParams({ ...jobFields, JobOptions: JSON.stringify(JobOptions || []) })
+        const response = await Vue.axios.post(APIMETHODS.URL.EDIT_JOB + '?' + getParams.toString(), null, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
         if (response.data.MajorCode === '000') {
           return response.data
         } else {

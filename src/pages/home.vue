@@ -24,29 +24,29 @@
         <div v-for="job in visibleJobs" :key="job.Code" class="job-card" @click="openTask(job)">
           <div class="job-card-row">
             <span class="job-card-row-icon">
-              <f7-icon icon="f7-icons text-color-lightgray" size="16">info_circle</f7-icon>
+              <f7-icon icon="job-card-icon-glyph fl-info" size="16"></f7-icon>
             </span>
             <div class="job-card-row-content job-card-title-row">
               <span class="job-card-title">{{ job.Type || '—' }}</span>
               <f7-badge :color="jobStatus(job.Status).color">{{ jobStatus(job.Status).text }}</f7-badge>
-              <f7-icon icon="f7-icons job-card-chevron" size="16">chevron_right</f7-icon>
+              <f7-icon icon="job-card-icon-glyph fl-next job-card-chevron" size="16"></f7-icon>
             </div>
           </div>
           <div class="job-card-row">
             <span class="job-card-row-icon">
-              <f7-icon size="16" icon="f7-icons size-16 icon-other-date text-color-lightgray"></f7-icon>
+              <f7-icon size="16" icon="job-card-icon-glyph fl-date"></f7-icon>
             </span>
-            <span class="size-14 vertical-align-middle">{{ formatDate(job.BeginDate) }}</span>
+            <span class="size-14 vertical-align-middle">{{ formatDate(jobBeginDate(job)) }}</span>
           </div>
           <div class="job-card-row">
             <span class="job-card-row-icon">
-              <f7-icon size="16" icon="f7-icons size-16 icon-menu-profile text-color-lightgray"></f7-icon>
+              <f7-icon size="16" icon="job-card-icon-glyph fl-name"></f7-icon>
             </span>
             <span class="size-14 vertical-align-middle">{{ job.CustomerName || job.Name || '—' }}</span>
           </div>
           <div class="job-card-row">
             <span class="job-card-row-icon">
-              <f7-icon size="16" icon="f7-icons size-16 icon-address text-color-lightgray"></f7-icon>
+              <f7-icon size="16" icon="job-card-icon-glyph fl-pin"></f7-icon>
             </span>
             <a href="#" class="job-card-address-link size-14" @click.prevent.stop="goToWorkLocation(job)">{{ addressLine(job) }}</a>
           </div>
@@ -63,6 +63,7 @@
 import LoginScreen from "../components/login-screen";
 import { mapGetters } from "vuex";
 import { getJobStatus, isJobVisible } from "../js/helpers/enum-job-status";
+import { parseTimePeriod } from "../js/helpers/parse-time-period";
 import moment from "moment";
 
 export default {
@@ -92,6 +93,9 @@ export default {
     },
     formatDate(date) {
       return date ? moment(date).format("DD.MM.YYYY") : "—";
+    },
+    jobBeginDate(job) {
+      return parseTimePeriod(job.TimePeriod).beginDate;
     },
     openTask(job) {
       this.$store.commit("SET_SELECTED_JOB", job);

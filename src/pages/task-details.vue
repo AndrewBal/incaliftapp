@@ -13,7 +13,7 @@
         </span>
         <div class="detail-card-content">
           <div class="detail-card-label">Date</div>
-          <div class="detail-card-value">{{ formatDate(job.BeginDate) }}</div>
+          <div class="detail-card-value">{{ formatDate(jobBeginDate) }}</div>
         </div>
       </div>
 
@@ -64,7 +64,7 @@
         <div class="detail-card-content">
           <div class="detail-card-label">Checklist</div>
           <div class="detail-card-value">
-            <div v-for="item in checklistItems" :key="item.Code">• {{ item.Name }}</div>
+            <div v-for="item in checklistItems" :key="item.Code">• {{ item.CheckListQuestion }}</div>
           </div>
         </div>
       </div>
@@ -89,6 +89,7 @@
 import { mapGetters } from "vuex";
 import moment from "moment";
 import { JOB_STATUS } from "../js/helpers/enum-job-status";
+import { parseTimePeriod } from "../js/helpers/parse-time-period";
 
 export default {
   name: "task-details",
@@ -97,6 +98,9 @@ export default {
     ...mapGetters(["info", "jobs", "selectedJob", "checklistItems"]),
     job() {
       return this.selectedJob;
+    },
+    jobBeginDate() {
+      return this.job ? parseTimePeriod(this.job.TimePeriod).beginDate : null;
     },
     addressLine() {
       if (!this.job) return "—";

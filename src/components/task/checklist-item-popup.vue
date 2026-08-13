@@ -9,7 +9,7 @@
         <f7-nav-left>
           <f7-link icon="icon-header-close" @click="closePopup"></f7-link>
         </f7-nav-left>
-        <f7-nav-title sliding>{{ item.Name }}</f7-nav-title>
+        <f7-nav-title sliding>{{ item.CheckListQuestion }}</f7-nav-title>
       </f7-navbar>
 
       <f7-toolbar bottom no-shadow class="custom-toolbar">

@@ -23,15 +23,45 @@
         class="checklist-item-row"
         @click="openItem(item)"
       >
-        <span>{{ item.Name }}</span>
+        <span>{{ item.CheckListQuestion }}</span>
         <f7-badge :color="isAnswered(item.Code) ? 'green' : 'orange'">
           {{ isAnswered(item.Code) ? 'Done' : 'In process' }}
         </f7-badge>
       </div>
 
+      <div class="detail-card finish-question-card">
+        <div class="detail-card-value">This equipment IS / NOT safe to be used</div>
+        <div class="row finish-toggle-row">
+          <f7-button :fill="answers.safe === 'Yes'" color="green" class="col" :disabled="!isEditable" @click="setAnswer('safe', 'Yes')">Is</f7-button>
+          <f7-button :fill="answers.safe === 'No'" color="red" class="col" :disabled="!isEditable" @click="setAnswer('safe', 'No')">Not</f7-button>
+        </div>
+      </div>
+
+      <div class="detail-card finish-question-card">
+        <div class="detail-card-value">This equipment DOES / DOES NOT require repairs</div>
+        <div class="row finish-toggle-row">
+          <f7-button :fill="answers.repairs === 'Yes'" color="green" class="col" :disabled="!isEditable" @click="setAnswer('repairs', 'Yes')">Does</f7-button>
+          <f7-button :fill="answers.repairs === 'No'" color="red" class="col" :disabled="!isEditable" @click="setAnswer('repairs', 'No')">Does Not</f7-button>
+        </div>
+      </div>
+
+      <div class="detail-card finish-question-card">
+        <div class="detail-card-value">This equipment DOES / DOES NOT conform to current Australian Standards in its present condition</div>
+        <div class="row finish-toggle-row">
+          <f7-button :fill="answers.conforms === 'Yes'" color="green" class="col" :disabled="!isEditable" @click="setAnswer('conforms', 'Yes')">Does</f7-button>
+          <f7-button :fill="answers.conforms === 'No'" color="red" class="col" :disabled="!isEditable" @click="setAnswer('conforms', 'No')">Does Not</f7-button>
+        </div>
+      </div>
+
       <f7-toolbar v-if="isEditable" bottom no-shadow class="custom-toolbar">
         <div class="row width-100 padding-horizontal">
-          <f7-button color="green" fill class="col text-uppercase" @click="goToFinish">Done</f7-button>
+          <f7-button
+            color="green"
+            fill
+            class="col text-uppercase"
+            :class="{ disabled: !canFinish }"
+            @click="goToFinish"
+          >Done</f7-button>
         </div>
       </f7-toolbar>
     </template>
@@ -41,7 +71,17 @@
 <script>
 import { mapGetters } from "vuex";
 import { JOB_STATUS } from "../js/helpers/enum-job-status";
+import { parseTimePeriod } from "../js/helpers/parse-time-period";
 import ChecklistItemPopup from "../components/task/checklist-item-popup";
+
+// Placeholder checkListCode values for the 3 fixed sign-off questions — the real
+// Job/Edit contract only documents per-checklist-item JobOptions entries, so these
+// need to be confirmed/replaced with real codes once backend defines them.
+const EXTRA_QUESTION_CODES = {
+  safe: "SAFE_TO_USE",
+  repairs: "REQUIRES_REPAIR",
+  conforms: "CONFORMS_TO_AS",
+};
 
 export default {
   name: "task-checklist",
@@ -51,6 +91,7 @@ export default {
     isItemPopupOpen: false,
     activeItem: {},
     popupKey: 1,
+    answers: { safe: "", repairs: "", conforms: "" },
   }),
 
   computed: {
@@ -63,6 +104,15 @@ export default {
     },
     activeAnswer() {
       return this.checklistAnswers[this.activeItem.Code] || { comment: "", photo: "" };
+    },
+    jobTimePeriod() {
+      return this.job ? parseTimePeriod(this.job.TimePeriod) : { beginDate: null, endDate: null };
+    },
+    isChecklistComplete() {
+      return this.checklistItems.length > 0 && this.checklistItems.every((item) => this.isAnswered(item.Code));
+    },
+    canFinish() {
+      return this.isChecklistComplete && this.answers.safe && this.answers.repairs && this.answers.conforms;
     },
   },
 
@@ -88,7 +138,56 @@ export default {
         data: this.checklistAnswers,
       });
     },
-    goToFinish() {
+    setAnswer(key, value) {
+      if (!this.isEditable) return;
+      this.answers[key] = value;
+    },
+    formatApiDate(momentDate) {
+      return momentDate && momentDate.isValid() ? momentDate.format("YYYY-MM-DD HH:mm:ss") : "";
+    },
+    async goToFinish() {
+      if (!this.canFinish) return;
+
+      const mainOptions = this.checklistItems.map((item) => {
+        const answer = this.checklistAnswers[item.Code] || {};
+        return {
+          checkListCode: item.Code,
+          message: "",
+          jobAnswer: answer.comment || "",
+          result: "No",
+          photo: answer.photo || "",
+        };
+      });
+      const extraOptions = [
+        { checkListCode: EXTRA_QUESTION_CODES.safe, message: "", jobAnswer: "", result: this.answers.safe, photo: "" },
+        { checkListCode: EXTRA_QUESTION_CODES.repairs, message: "", jobAnswer: "", result: this.answers.repairs, photo: "" },
+        { checkListCode: EXTRA_QUESTION_CODES.conforms, message: "", jobAnswer: "", result: this.answers.conforms, photo: "" },
+      ];
+
+      this.$f7.progressbar.show();
+      const editResult = await this.$store.dispatch("EDIT_JOB", {
+        Imei: this.job.Imei || "",
+        Type: this.job.Type || "",
+        CustomerCode: this.job.CustomerCode || "",
+        AgentCode: this.job.AgentCode || "",
+        InstallerContactCode: this.job.InstallerId || "",
+        BeginDate: this.formatApiDate(this.jobTimePeriod.beginDate),
+        EndDate: this.formatApiDate(this.jobTimePeriod.endDate),
+        Notes: this.job.Notes || "",
+        Address: this.job.Address || "",
+        City: this.job.City || "",
+        Region: this.job.Region || "",
+        AddressLat: this.job.AddressLat || "",
+        AddressLng: this.job.AddressLng || "",
+        JobModel: this.job.JobModel || "",
+        JobSerialNo: this.job.JobSerialNo || "",
+        JobName: this.job.JobName || "",
+        Code: this.job.Code,
+        JobOptions: [...mainOptions, ...extraOptions],
+      });
+      this.$f7.progressbar.hide();
+      if (!editResult) return;
+
       this.$f7router.navigate({ name: "task-finish" });
     },
   },
@@ -112,4 +211,12 @@ export default {
 </script>
 
 <style scoped>
+.finish-question-card {
+  flex-direction: column;
+  align-items: stretch;
+}
+.finish-toggle-row {
+  margin-top: 10px;
+  gap: 8px;
+}
 </style>
